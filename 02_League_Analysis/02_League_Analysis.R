@@ -32,7 +32,7 @@ standings_temp <- cdlDF %>%
             total_maps = sum(maps_played)) %>%
   arrange(desc(series_wins), desc(map_wins)) 
 
-standings_temp$rank_change <- c(0, 0, 0, 0, 0, 1, 0, -1, 1, 1, -1, -1)
+standings_temp$rank_change <- c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
 standings_temp$series_wins <- as.numeric(standings_temp$series_wins)
 standings_temp$series_losses <- as.numeric(standings_temp$series_losses)
@@ -1279,7 +1279,42 @@ team_avg_score_diffs_Tbl <-
   group_by(team, gamemode) %>%
   summarise(avg_score_diff = as.numeric(mean(score_diff))) %>%
   pivot_wider(names_from = gamemode, 
-              values_from = avg_score_diff)
+              values_from = avg_score_diff) %>% ungroup() %>%
+  select(team, Hardpoint, "Search & Destroy", Control) %>%
+  gt() %>%
+  opt_align_table_header("center") %>%
+  cols_align("center") %>%
+  tab_source_note("By: David Harler Jr. | Data from: @GGBreakingPoint") %>%
+  opt_row_striping() %>%
+  tab_header(title = "CDL Average Score Differential by Gamemode",
+             subtitle = format(Sys.Date(), "%B %d, %Y")) %>%
+  gt_theme_espn() %>% 
+  cols_width(team ~ px(200), Control ~ px(100), Hardpoint ~ px(100), 
+             "Search & Destroy" ~ px(100)) %>%
+  data_color(
+    columns = Control,
+    fn = scales::col_numeric(
+      palette =  c("#cb181d", "#cb181d", "#fcae91", "#ffffff", 
+                   "#bdd7e7", "#2171b5", "#2171b5"),
+      domain = c(-1, 1), 
+      reverse = TRUE)) %>%
+  data_color(
+    columns = Hardpoint, 
+    fn = scales::col_numeric(
+      palette =  c("#cb181d", "#cb181d", "#fcae91", "#ffffff", 
+                   "#bdd7e7", "#2171b5", "#2171b5"),
+      domain = c(-60, 70), 
+      reverse = TRUE)) %>%
+  data_color(
+    columns = ends_with("Destroy"), 
+    fn = scales::col_numeric(
+      palette =  c("#cb181d", "#cb181d", "#fcae91", "#ffffff", 
+                   "#bdd7e7", "#2171b5", "#2171b5"),
+      domain = c(-1, 1), 
+      reverse = TRUE))
+  
+gtsave(team_avg_score_diffs_Tbl, "68_Team_Avg_Score_Diffs.png", 
+       path = figPath)
 
 # 69 Team Avg Score Diff by Map Hardpoint --------------------------------------
 
@@ -1670,6 +1705,7 @@ avg_pts_allowed_by_team_and_mode_Tbl <-
   pivot_wider(names_from = gamemode, 
               values_from = c(avg_pts_allowed)) %>%
   ungroup() %>%
+  select(team, Hardpoint, "Search & Destroy", Control) %>%
   gt() %>%
   opt_align_table_header("center") %>%
   cols_align("center") %>%
@@ -1976,7 +2012,7 @@ avg_pts_for_by_team_and_mode_Tbl <-
   pts_by_team_and_mode_df %>% select(team, gamemode, avg_pts_for) %>%
   pivot_wider(names_from = gamemode, 
               values_from = c(avg_pts_for)) %>%
-  ungroup() %>%
+  ungroup() %>% select(team, Hardpoint, "Search & Destroy", Control) %>%
   gt() %>%
   opt_align_table_header("center") %>%
   cols_align("center") %>%
@@ -2539,4 +2575,64 @@ score_diffs_in_win_by_map_ctrl_wrapped <-
 ggsave("112_Score_Diff_in_Win_by_Map_CTRL_Wrapped.png", scale = 1.25,
        score_diffs_in_win_by_map_ctrl_wrapped, path = figPath, 
        width = 2000, height = 1400, units = "px", dpi = 300)
+
+# 113 - 115 More ----
+
+kills_per_hp <- cdlDF %>%
+  filter(gamemode == "Hardpoint" & map_name != "Terminal") %>%
+  ggplot(aes(x = map_name, y = kills)) +
+  geom_boxplot(alpha = 0.5, outlier.alpha = 0 ) +
+  geom_jitter(width = 0.1, height = 0.25, alpha = 0.5) +
+  labs(title = "CDL Kills per Hardpoint", 
+       subtitle = format(Sys.Date(), "%B %d, %Y"), 
+       caption = "By: David Harler Jr. | Data from: @GGBreakingPoint") +
+  xlab("Maps") + ylab("Kills") +
+  theme(
+    plot.title = element_text(size = 16),
+    axis.text.x.bottom = element_text(size = 10, color = "#3b3b3b"), 
+    axis.text.y.left = element_text(size = 10, color = "#3b3b3b")
+  )
+
+ggsave("113_Kills_per_HP.png", scale = 1.25,
+       kills_per_hp, path = figPath, 
+       width = 2000, height = 1400, units = "px", dpi = 300)
+
+kills_per_snd <- cdlDF %>%
+  filter(gamemode == "Search & Destroy" & map_name != "Skidrow") %>%
+  ggplot(aes(x = map_name, y = kills)) +
+  geom_boxplot(alpha = 0.5, outlier.alpha = 0 ) +
+  geom_jitter(width = 0.1, height = 0.25, alpha = 0.5) +
+  labs(title = "CDL Kills per Search & Destroy", 
+       subtitle = format(Sys.Date(), "%B %d, %Y"), 
+       caption = "By: David Harler Jr. | Data from: @GGBreakingPoint") +
+  xlab("Maps") + ylab("Kills") +
+  theme(
+    plot.title = element_text(size = 16),
+    axis.text.x.bottom = element_text(size = 10, color = "#3b3b3b"), 
+    axis.text.y.left = element_text(size = 10, color = "#3b3b3b")
+  )
+
+ggsave("114_Kills_per_SnD.png", scale = 1.25,
+       kills_per_snd, path = figPath, 
+       width = 2000, height = 1400, units = "px", dpi = 300)
+
+kills_per_ctrl <- cdlDF %>%
+  filter(gamemode == "Control") %>%
+  ggplot(aes(x = map_name, y = kills)) +
+  geom_boxplot(alpha = 0.5, outlier.alpha = 0 ) +
+  geom_jitter(width = 0.1, height = 0.25, alpha = 0.5) +
+  labs(title = "CDL Kills per Control", 
+       subtitle = format(Sys.Date(), "%B %d, %Y"), 
+       caption = "By: David Harler Jr. | Data from: @GGBreakingPoint") +
+  xlab("Maps") + ylab("Kills") +
+  theme(
+    plot.title = element_text(size = 16),
+    axis.text.x.bottom = element_text(size = 10, color = "#3b3b3b"), 
+    axis.text.y.left = element_text(size = 10, color = "#3b3b3b")
+  )
+
+ggsave("115_Kills_per_CTRL.png", scale = 1.25,
+       kills_per_ctrl, path = figPath, 
+       width = 2000, height = 1400, units = "px", dpi = 300)
+
 
